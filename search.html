@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>State Search</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: linear-gradient(135deg, #1e1e2f, #2b2b40);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      color: #fff;
+    }
+    .card {
+      background: #ffffff10;
+      backdrop-filter: blur(12px);
+      border-radius: 20px;
+      padding: 40px;
+      width: 420px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 25px;
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      color: #ffbb33;
+    }
+    .input-group { margin-bottom: 20px; text-align: left; }
+    label { font-size: 14px; margin-bottom: 6px; display: block; color: #ddd; }
+    input {
+      width: 100%; padding: 12px 15px; border: none; border-radius: 12px;
+      background: #ffffff20; color: #fff; font-size: 15px; outline: none;
+      transition: 0.3s ease;
+    }
+    input:focus {
+      background: #ffffff30; box-shadow: 0 0 0 3px rgba(255, 170, 0, 0.5);
+    }
+    .suggestions {
+      list-style: none; margin: 5px 0 0; padding: 0;
+      border-radius: 12px; background: #fff; color: #000;
+      max-height: 150px; overflow-y: auto;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+      position: relative; z-index: 10;
+    }
+    .suggestions li { padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #eee; }
+    .suggestions li:hover { background: #ffefcc; }
+    .search-button {
+      width: 100%; padding: 14px; margin-top: 20px;
+      border: none; border-radius: 12px; font-size: 16px; font-weight: bold;
+      color: white; cursor: pointer;
+      background: linear-gradient(135deg, #ff8c00, #ffbb33);
+      box-shadow: 0 8px 20px rgba(255, 136, 0, 0.4);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .search-button:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(255, 136, 0, 0.6); }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>IRCTC Route Search</h1>
+
+    <!-- Main State -->
+    <div class="input-group">
+      <label for="searchBox">Main State</label>
+      <input type="text" id="searchBox" placeholder="Search the State..." autocomplete="off" />
+      <ul id="suggestions" class="suggestions"></ul>
+    </div>
+
+    <!-- From -->
+    <div class="input-group">
+      <label for="fromBox">From Junction</label>
+      <input type="text" id="fromBox" placeholder="From junction..." autocomplete="off" disabled />
+      <ul id="fromSuggestions" class="suggestions"></ul>
+    </div>
+
+    <!-- To -->
+    <div class="input-group">
+      <label for="toBox">To Junction</label>
+      <input type="text" id="toBox" placeholder="To junction..." autocomplete="off" disabled />
+      <ul id="toSuggestions" class="suggestions"></ul>
+    </div>
+
+    <!-- Search Button -->
+    <button id="searchBtn" class="search-button">Search Route</button>
+  </div>
+  
+
+  <script>
+    const states = ["Maharashtra","Karnataka","Tamil Nadu","Gujarat","Goa","Bihar","Madhya Pradesh"];
+
+    // Junctions dictionary
+    const junctions = {
+      Maharashtra: ["Mumbai CST", "Pune Jn", "Solapur Jn", "Nagpur Jn", "Nashik Road", "Kolhapur Jn"],
+      Karnataka: ["Bengaluru City", "Mysuru Jn", "Hubballi Jn", "Belagavi Jn"],
+    };
+
+    const searchBox = document.getElementById("searchBox");
+    const suggestions = document.getElementById("suggestions");
+    const fromBox = document.getElementById("fromBox");
+    const fromSuggestions = document.getElementById("fromSuggestions");
+    const toBox = document.getElementById("toBox");
+    const toSuggestions = document.getElementById("toSuggestions");
+    const searchBtn = document.getElementById("searchBtn");
+
+    function showSuggestions(list, suggestionElement, inputElement) {
+      suggestionElement.innerHTML = "";
+      list.forEach(item => {
+        const li = document.createElement("li");
+        li.textContent = item;
+        li.addEventListener("click", () => {
+          inputElement.value = item;
+          suggestionElement.innerHTML = "";
+          if (inputElement === searchBox) enableFromToIfMainSelected();
+        });
+        suggestionElement.appendChild(li);
+      });
+    }
+
+    function handleInput(inputElement, suggestionElement, dataList) {
+      const query = inputElement.value.toLowerCase();
+      const matched = dataList.filter(i => i.toLowerCase().includes(query));
+      showSuggestions(matched, suggestionElement, inputElement);
+    }
+
+    function enableFromToIfMainSelected() {
+      const mainState = searchBox.value.trim();
+      if (states.includes(mainState)) {
+        fromBox.disabled = false;
+        toBox.disabled = false;
+      } else {
+        fromBox.disabled = true;
+        toBox.disabled = true;
+      }
+    }
+
+    // Main state suggestions
+    searchBox.addEventListener("input", () => {
+      handleInput(searchBox, suggestions, states);
+      enableFromToIfMainSelected();
+    });
+
+    // Junction suggestions depend on state
+    fromBox.addEventListener("input", () => {
+      const state = searchBox.value.trim();
+      if (junctions[state]) handleInput(fromBox, fromSuggestions, junctions[state]);
+    });
+
+    toBox.addEventListener("input", () => {
+      const state = searchBox.value.trim();
+      if (junctions[state]) handleInput(toBox, toSuggestions, junctions[state]);
+    });
+
+    // Alert when clicking From/To while disabled
+    [fromBox, toBox].forEach(box => {
+      box.addEventListener("click", () => {
+        if (box.disabled) {
+          alert("Please select Main State first!");
+        }
+      });
+    });
+
+    // Redirect to dashboard
+    searchBtn.addEventListener("click", () => {
+      const fromState = fromBox.value.trim();
+      const toState = toBox.value.trim();
+      if (!fromState || !toState) {
+        alert("Please select both From and To junctions!");
+        return;
+      }
+      const key = `${fromState}-${toState}`;
+      window.location.href = `dashboard.html?route=${key}`;
+    });
+  </script>
+</body>
+</html>

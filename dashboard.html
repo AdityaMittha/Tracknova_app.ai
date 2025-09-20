@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Railway Dashboard</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background-color: #f5f6fa;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px;
+    }
+    h1 { margin-bottom: 10px; color: #222; }
+    .route-info {
+      font-size: 18px;
+      margin-bottom: 30px;
+      background: #fff;
+      padding: 20px 30px;
+      border-radius: 12px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+    }
+    table {
+      width: 90%; max-width: 900px;
+      border-collapse: collapse;
+      margin-top: 20px; background: #fff;
+      border-radius: 12px; overflow: hidden;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+    }
+    th, td { padding: 14px 16px; text-align: left; }
+    th { background: #ff8c00; color: white; }
+    tr:nth-child(even) { background: #f9f9f9; }
+    tr:hover { background: #fff3e0; }
+    .back-btn {
+      margin-top: 30px; padding: 12px 20px;
+      background: #ff8c00; color: white; border: none;
+      border-radius: 8px; cursor: pointer;
+      font-size: 15px; font-weight: 600;
+      box-shadow: 0 4px 12px rgba(255,140,0,0.3);
+    }
+    .back-btn:hover { background: #e67e00; }
+  </style>
+</head>
+<body>
+  <h1>Tracknova</h1>
+  <div class="route-info" id="routeInfo"></div>
+
+  <table id="componentTable">
+    <thead>
+      <tr>
+        <th>Component Type</th>
+        <th>Manufacturer</th>
+        <th>Date of Manufacture</th>
+        <th>Status</th>
+        <th>Replacement Date</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <button class="back-btn" onclick="window.location.href='search.html'">⬅ Back to Search</button>
+
+  <script>
+    // Dummy data for junctions
+    const dashboardData = {
+      "Solapur Jn-Pune Jn": {
+        distance: "264 km",
+        components: [
+          { type: "Rail (60 kg)", manufacturer: "Tata Steel", dom: "2018-04-10", status: "Good", replacement: "2033-04-10" },
+          { type: "PSC Sleeper", manufacturer: "L&T Infra", dom: "2019-09-20", status: "Good", replacement: "2039-09-20" },
+          { type: "Ballast", manufacturer: "ACC Cement Supply", dom: "2020-11-15", status: "Needs Topping", replacement: "2027-11-15" },
+          { type: "Elastic Clip", manufacturer: "RDSO Vendor 112", dom: "2017-08-30", status: "Fair", replacement: "2025-08-30" },
+          { type: "Switch & Crossing", manufacturer: "BHEL", dom: "2016-06-05", status: "Overhaul Required", replacement: "2024-06-05" },
+          { type: "Overhead Equipment", manufacturer: "Siemens India", dom: "2015-12-12", status: "Electrified", replacement: "2030-12-12" },
+          { type: "Signal Equipment", manufacturer: "ABB India", dom: "2022-02-05", status: "Operational", replacement: "2032-02-05" }
+        ]
+      }
+    };
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const routeKey = urlParams.get("route");
+    const data = dashboardData[routeKey];
+
+    if (data) {
+      document.getElementById("routeInfo").innerHTML =
+        `<b>Route:</b> ${routeKey.replace("-", " → ")} <br><b>Distance:</b> ${data.distance}`;
+
+      const tbody = document.querySelector("#componentTable tbody");
+      data.components.forEach(c => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${c.type}</td>
+          <td>${c.manufacturer}</td>
+          <td>${c.dom}</td>
+          <td>${c.status}</td>
+          <td>${c.replacement}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    } else {
+      document.getElementById("routeInfo").innerText = "No data available for this junction route.";
+    }
+  </script>
+</body>
+</html>

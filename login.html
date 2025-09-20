@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title> TRACKNOVA – Employee Login</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- jsQR library (client-side QR decoder) -->
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #0f1216;
+      --panel: #171b22;
+      --muted: #9aa3af;
+      --text: #e5e7eb;
+      --accent: #ff6a00;
+      --accent-700: #e05f00;
+      --ring: #2b3240;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: "Poppins", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.4;
+    }
+    .wrap {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1.2fr 0.9fr;
+      gap: 24px;
+      padding: 32px;
+    }
+    .hero {
+      position: relative;
+      border-radius: 20px;
+      overflow: hidden;
+      display: grid;
+      place-items: stretch;
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+      background-image: url("tracknova.jpg");
+      background-size: cover;
+      background-position: center;
+    }
+    .slab { position: absolute; top:0; bottom:0; left:0; width:28%; min-width:180px; background:var(--accent); opacity:.92; }
+    .irctc-word {
+      position: absolute; left:40px; top:50%; transform:translateY(-50%);
+      font-size: clamp(48px, 8vw, 120px); font-weight:700; letter-spacing:6px;
+      color: rgba(255,255,255,.9); text-shadow:0 6px 24px rgba(0,0,0,.35);
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--ring);
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+      padding: 36px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .brand { display:flex; align-items:center; gap:10px; color:var(--muted); font-size:14px;}
+    .title { font-size:34px; font-weight:700; display:flex; align-items:center; gap:8px;}
+    .title .accent { color:var(--accent); }
+    form { display:grid; gap:12px; }
+    .field { display:grid; gap:8px; }
+    label { font-size:13px; color:var(--muted); }
+    input { width:100%; color:var(--text); border:1px solid var(--ring); border-radius:12px; padding:12px; font-size:15px; background:transparent; }
+    input:focus { border-color:var(--accent); box-shadow:0 0 0 4px rgba(255,106,0,.12); }
+    .btn { background-color:#FFA500; border:none; color:#fff; font-weight:600; padding:12px; border-radius:12px; cursor:pointer; box-shadow:0 10px 20px rgba(255,106,0,.25); }
+    .btn:hover { background-color:#FFD580; }
+
+    /* Scanner UI */
+    .scanner-controls { display:flex; gap:10px; align-items:center; }
+    #video { width:100%; max-height:360px; object-fit:cover; border-radius:12px; display:none; }
+    #canvas { display:none; } /* hidden internal canvas */
+    .scan-result {
+      margin-top: 8px;
+      padding: 12px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--ring);
+    }
+    .component-row { display:flex; justify-content:space-between; gap:12px; margin:6px 0; }
+    .label { color:var(--muted); font-size:13px; width:40%; }
+    .value { font-weight:600; text-align:right; width:60%; }
+    .notice { font-size:13px; color:#f0b46b; }
+  </style>
+</head>
+
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <img src="tracknova.jpg" style="width:100%; height:100%; object-fit:cover;" alt="hero image">
+    </section>
+
+    <aside class="panel">
+      <div class="brand"><span class="dot"></span> TRACKNOVA • Indian Railways</div>
+      <h1 class="title">Employee Login<span class="accent">.</span></h1>
+
+      <!-- Login form -->
+      <form id="loginForm" onsubmit="event.preventDefault(); handleLogin();">
+        <div class="field">
+          <label for="userId">User ID</label>
+          <input id="userId" name="userId" type="text" placeholder="Enter User ID" required />
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" placeholder="Enter Password" required />
+        </div>
+
+        <div class="scanner-controls">
+          <button type="button" id="scanBtn" class="btn">Open Camera & Scan QR</button>
+          <button type="submit" class="btn" style="background:#2b3240;">Login</button>
+        </div>
+      </form>
+
+      <!-- Video preview (camera) -->
+      <video id="video" autoplay playsinline></video>
+      <canvas id="canvas"></canvas>
+
+      <!-- Area to display scanned component data -->
+      <div id="result" class="scan-result" style="display:none;">
+        <div class="notice">Scanned component details:</div>
+        <div id="componentData"></div>
+        <div style="margin-top:10px;">
+          <button id="closeResult" class="btn" style="background:#2b3240;">Close</button>
+        </div>
+      </div>
+
+      <div style="color:var(--muted); font-size:13px; margin-top:8px;">
+        Tip: Allow camera permissions. Works on localhost or HTTPS only.
+      </div>
+    </aside>
+  </main>
+
+ <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script>
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('canvas');
+  const scanBtn = document.getElementById('scanBtn');
+  const resultDiv = document.getElementById('result');
+  const componentDataDiv = document.getElementById('componentData');
+  const closeResult = document.getElementById('closeResult');
+
+  let stream = null;
+  let scanning = false;
+  let rafId = null;
+
+  // Sample component data pools
+  const componentNames = [
+    "Elastic Rail Clip", "Fishplate", "Concrete Sleeper",
+    "Rail Pad", "Switch Blade", "Crossing Nose",
+    "Ballast Retainer", "Rail Joint", "Base Plate",
+    "Point Machine", "Insulated Rail Joint"
+  ];
+  const manufacturers = [
+    "ABC Rails Ltd.", "RailTech Industries",
+    "National Sleepers Co.", "SteelTrack Pvt. Ltd.",
+    "Metro Rail Components"
+  ];
+  const statuses = ["Operational", "Good Condition", "Needs Inspection", "Under Maintenance"];
+
+  scanBtn.addEventListener('click', startScanner);
+  closeResult.addEventListener('click', () => { resultDiv.style.display = 'none'; });
+
+  async function startScanner() {
+    if (scanning) {
+      stopScanner();
+      return;
+    }
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      video.srcObject = stream;
+      video.style.display = 'block';
+      scanning = true;
+      scanBtn.textContent = 'Scanning... (Click to stop)';
+      tick();
+    } catch (err) {
+      alert("⚠️ Camera access failed: " + err.message);
+      console.error(err);
+    }
+  }
+
+  function stopScanner() {
+    scanning = false;
+    scanBtn.textContent = 'Open Camera & Scan QR';
+    video.style.display = 'none';
+    if (stream) {
+      stream.getTracks().forEach(t => t.stop());
+      stream = null;
+    }
+    if (rafId) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+  }
+
+  function tick() {
+    if (!scanning) return;
+    const ctx = canvas.getContext('2d');
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      try {
+        const code = jsQR(imageData.data, imageData.width, imageData.height);
+        if (code) {
+          onQRCodeScanned(code.data);
+          return;
+        }
+      } catch (err) {
+        console.error("QR decode error", err);
+      }
+    }
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function onQRCodeScanned(data) {
+    stopScanner();
+    showComponent(data);
+  }
+
+  function showComponent(scanned) {
+    // Generate unique/random component info
+    const id = "CMP-" + Math.floor(10000 + Math.random() * 90000);
+    const name = componentNames[Math.floor(Math.random() * componentNames.length)];
+    const manufacturer = manufacturers[Math.floor(Math.random() * manufacturers.length)];
+    const status = statuses[Math.floor(Math.random() * statuses.length)];
+    const date = randomDate(new Date(2020, 0, 1), new Date()).toISOString().split('T')[0];
+
+    componentDataDiv.innerHTML = `
+      <div class="component-row"><div class="label">Component ID</div><div class="value">${id}</div></div>
+      <div class="component-row"><div class="label">Name</div><div class="value">${name}</div></div>
+      <div class="component-row"><div class="label">Manufacturer</div><div class="value">${manufacturer}</div></div>
+      <div class="component-row"><div class="label">Date of Fitting</div><div class="value">${date}</div></div>
+      <div class="component-row"><div class="label">Status</div><div class="value">${status}</div></div>
+    `;
+    resultDiv.style.display = 'block';
+  }
+
+  function randomDate(start, end) {
+    return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+  }
+</script>
